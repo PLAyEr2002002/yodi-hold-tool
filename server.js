@@ -46,7 +46,7 @@ app.post("/create-hold", async (req, res) => {
         metadata,
       },
       metadata,
-      success_url: "https://yodi.com.au/?payment=success",
+      success_url: "https://yodi.com.au/",
       cancel_url: "https://yodi.com.au/?payment=cancelled",
     });
 
