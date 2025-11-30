@@ -1,125 +1,162 @@
+// server.js
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const bodyParser = require("body-parser");
+
 const app = express();
 
+// Initialise Stripe with secret key from .env
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use(express.static("public"));
+// Middleware
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, "public")));
 
-app.post("/create-hold", async (req, res) => {
+// Simple health-check
+app.get("/health", (req, res) => {
+  res.json({ ok: true });
+});
+
+// Create Checkout Session route
+app.post("/create-checkout-session", async (req, res) => {
   try {
-    const { customerEmail, internalNote, items, deliveryFeeAud } = req.body;
+    const {
+      customerEmail,
+      internalNote,
+      deliveryFeeAud,
+      items,
+      adminPassword,
+    } = req.body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ error: "Please add at least one item." });
+    // 1. Check admin password on the server
+    const expectedPassword = process.env.ADMIN_PASSWORD || "";
+    if (!expectedPassword) {
+      return res.status(500).json({
+        error: "Server misconfigured, ADMIN_PASSWORD is not set.",
+      });
+    }
+    if (adminPassword !== expectedPassword) {
+      return res.status(403).json({ error: "Invalid admin password." });
     }
 
-    const lineItems = [];
-    let totalCents = 0;
+    // 2. Validate items
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ error: "At least one item is required." });
+    }
 
-    items.forEach((item, index) => {
-      const priceAud = Number(item.priceAud || 0);
-      const quantity = Number(item.quantity || 1);
+    // 3. Build Stripe line items
+    const line_items = [];
+    let totalAud = 0;
 
-      const unitAmount = Math.round(priceAud * 100);
+    for (const item of items) {
+      const name = (item.name || "").toString().trim();
+      const description = (item.description || "").toString().trim();
+      const imageUrl = (item.imageUrl || "").toString().trim();
+      const priceAudNum = parseFloat(item.priceAud);
+      const qtyNum = parseInt(item.qty, 10);
 
-      if (unitAmount <= 0 || quantity <= 0) {
-        return; // skip invalid rows
+      if (!name || !Number.isFinite(priceAudNum) || priceAudNum <= 0 || !qtyNum || qtyNum <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Each item needs name, positive price and quantity." });
       }
 
-      totalCents += unitAmount * quantity;
+      const unit_amount = Math.round(priceAudNum * 100);
+      totalAud += priceAudNum * qtyNum;
 
       const productData = {
-        name: item.name || `Item ${index + 1}`,
+        name,
+        description,
       };
 
-      if (item.description && item.description.trim().length > 0) {
-        productData.description = item.description.trim();
-      }
-
-      // only send image URL to Stripe if it looks valid and short enough
-      const imageUrl = (item.imageUrl || "").trim();
-      if (
-        imageUrl &&
-        imageUrl.length <= 2000 &&
-        /^https?:\/\//i.test(imageUrl)
-      ) {
+      // Stripe requires image URL <= 2048 chars
+      if (imageUrl && imageUrl.length <= 2048) {
         productData.images = [imageUrl];
       }
 
-      lineItems.push({
+      line_items.push({
+        quantity: qtyNum,
         price_data: {
           currency: "aud",
-          unit_amount: unitAmount,
+          unit_amount,
           product_data: productData,
         },
-        quantity,
       });
-    });
+    }
 
-    // Delivery / service fee as a separate line item
-    const feeAmountCents = Math.round(Number(deliveryFeeAud || 0) * 100);
-    if (feeAmountCents > 0) {
-      totalCents += feeAmountCents;
+    // 4. Delivery / service fee
+    const deliveryFeeNum = parseFloat(deliveryFeeAud);
+    if (Number.isFinite(deliveryFeeNum) && deliveryFeeNum > 0) {
+      const deliveryUnitAmount = Math.round(deliveryFeeNum * 100);
+      totalAud += deliveryFeeNum;
 
-      lineItems.push({
+      line_items.push({
+        quantity: 1,
         price_data: {
           currency: "aud",
-          unit_amount: feeAmountCents,
+          unit_amount: deliveryUnitAmount,
           product_data: {
-            name: "Delivery & service",
-            description: "Delivery and service charges",
+            name: "Delivery & service fee",
+            description: "Yodi delivery and service charges",
           },
         },
-        quantity: 1,
       });
     }
 
-    if (lineItems.length === 0) {
-      return res
-        .status(400)
-        .json({ error: "No valid items or fees to send to Stripe." });
-    }
-
+    // 5. Create Checkout Session
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
-      payment_method_types: ["card"],
-      customer_email: customerEmail || undefined,
-      line_items: lineItems,
-      success_url: "https://yodi.com.au/thanks",
-      cancel_url: "https://yodi.com.au/cancelled",
       payment_intent_data: {
-        capture_method: "manual", // this is what makes it an auth / hold
-        description: "Yodi try-before-you-buy hold",
+        capture_method: "manual", // this makes it an authorization you capture later
+        description: internalNote || "Yodi hold checkout",
         metadata: {
           internal_note: internalNote || "",
-          delivery_fee_aud: (Number(deliveryFeeAud || 0) || 0).toString(),
+          delivery_fee_aud: deliveryFeeAud || "0",
         },
       },
+      customer_email: customerEmail || undefined,
+      line_items,
+      success_url:
+        "https://checkout.stripe.com/c/pay/success#yodi_hold_success",
+      cancel_url:
+        "https://checkout.stripe.com/c/pay/cancel#yodi_hold_cancel",
     });
 
-    const responsePayload = {
-      checkoutUrl: session.url,
-      paymentIntentId: session.payment_intent,
-      totalAmountAud: (totalCents / 100).toFixed(2),
-      deliveryFeeAud: (feeAmountCents / 100).toFixed(2),
-    };
+    // 6. Build a human readable note string you can paste into Stripe notes
+    let noteText = `Yodi hold creator\n`;
+    noteText += `Session ID: ${session.id}\n`;
+    noteText += `Customer email: ${customerEmail || "n/a"}\n`;
+    noteText += `Internal note: ${internalNote || "n/a"}\n\n`;
+    noteText += `Items:\n`;
+    for (const item of items) {
+      noteText += `- ${item.name} x${item.qty} @ AUD ${item.priceAud}\n`;
+    }
+    noteText += `Delivery & service fee: AUD ${
+      Number.isFinite(deliveryFeeNum) && deliveryFeeNum > 0
+        ? deliveryFeeNum.toFixed(2)
+        : "0.00"
+    }\n`;
+    noteText += `Total intended authorization (approx): AUD ${totalAud.toFixed(
+      2
+    )}\n`;
+    noteText += `When payment appears, search by this Session ID in Stripe.`;
 
-    res.json(responsePayload);
+    return res.json({
+      url: session.url,
+      noteText,
+    });
   } catch (err) {
     console.error("Error creating Checkout Session", err);
-    res.status(500).json({ error: err.message || "Stripe error" });
+    const message =
+      (err && err.message) || "Unknown error while creating checkout session";
+    return res.status(500).json({ error: message });
   }
 });
 
-// fallback so direct visits to the Render URL still show the tool
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
+// Start server
 app.listen(PORT, () => {
   console.log(`Yodi hold tool listening on port ${PORT}`);
 });

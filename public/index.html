@@ -49,6 +49,7 @@
 
       input[type="text"],
       input[type="number"],
+      input[type="password"],
       textarea {
         width: 100%;
         padding: 8px 10px;
@@ -185,6 +186,23 @@
         font-size: 13px;
       }
 
+      .activity-log {
+        margin-top: 24px;
+        padding: 12px;
+        border-radius: 12px;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        font-size: 12px;
+        max-height: 180px;
+        overflow-y: auto;
+        white-space: pre-line;
+      }
+
+      .activity-log h3 {
+        margin: 0 0 6px 0;
+        font-size: 13px;
+      }
+
       @media (max-width: 640px) {
         .container {
           padding: 24px 16px 32px;
@@ -241,6 +259,19 @@
         </div>
       </div>
 
+      <div class="field">
+        <label for="adminPassword">Admin password</label>
+        <input
+          type="password"
+          id="adminPassword"
+          placeholder="Enter admin password"
+        />
+        <div class="small">
+          Only people who know this password can create links. Password is
+          checked on the server.
+        </div>
+      </div>
+
       <div class="mt-24">
         <div class="flex-between">
           <h2 style="font-size: 18px; margin: 0">Items</h2>
@@ -249,8 +280,8 @@
           </button>
         </div>
         <div class="small mt-8">
-          Prices are in AUD. Enter price in dollars &mdash; the tool converts to
-          cents for Stripe.
+          Prices are in AUD. Enter price in dollars, the tool converts to cents
+          for Stripe.
         </div>
 
         <table class="mt-8">
@@ -312,6 +343,13 @@
               Copy notes
             </button>
           </div>
+        </div>
+      </div>
+
+      <div class="activity-log" id="activityLog">
+        <h3>Activity log</h3>
+        <div id="activityLines" class="small">
+          Waiting, click “Create hold link” to start.
         </div>
       </div>
     </div>

@@ -1,84 +1,135 @@
-function createItemRow(initial = {}) {
+// public/app.js
+
+function logActivity(message) {
+  const container = document.getElementById("activityLines");
+  const now = new Date();
+  const time = now.toLocaleTimeString();
+  const line = `[${time}] ${message}`;
+  if (container.textContent.trim() === "" || container.textContent.includes("Waiting,")) {
+    container.textContent = line;
+  } else {
+    container.textContent += "\n" + line;
+  }
+}
+
+function createItemRow() {
   const tr = document.createElement("tr");
 
-  tr.innerHTML = `
-    <td><input type="text" class="item-name" placeholder="Jeans"></td>
-    <td><input type="text" class="item-description" placeholder="Blue, size 10"></td>
-    <td><input type="text" class="item-image" placeholder="https://..."></td>
-    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="79.95"></td>
-    <td><input type="number" class="item-qty" min="1" step="1" value="1"></td>
-    <td style="text-align:center;">
-      <button type="button" class="btn btn-danger btn-small remove-item">X</button>
-    </td>
-  `;
+  const nameTd = document.createElement("td");
+  const nameInput = document.createElement("input");
+  nameInput.type = "text";
+  nameTd.appendChild(nameInput);
 
-  if (initial.name) tr.querySelector(".item-name").value = initial.name;
-  if (initial.description)
-    tr.querySelector(".item-description").value = initial.description;
-  if (initial.imageUrl) tr.querySelector(".item-image").value = initial.imageUrl;
-  if (initial.priceAud)
-    tr.querySelector(".item-price").value = initial.priceAud;
-  if (initial.quantity)
-    tr.querySelector(".item-qty").value = initial.quantity;
+  const descTd = document.createElement("td");
+  const descInput = document.createElement("input");
+  descInput.type = "text";
+  descTd.appendChild(descInput);
 
-  tr.querySelector(".remove-item").addEventListener("click", () => {
+  const imgTd = document.createElement("td");
+  const imgInput = document.createElement("input");
+  imgInput.type = "text";
+  imgTd.appendChild(imgInput);
+
+  const priceTd = document.createElement("td");
+  const priceInput = document.createElement("input");
+  priceInput.type = "number";
+  priceInput.min = "0";
+  priceInput.step = "0.01";
+  priceTd.appendChild(priceInput);
+
+  const qtyTd = document.createElement("td");
+  const qtyInput = document.createElement("input");
+  qtyInput.type = "number";
+  qtyInput.min = "1";
+  qtyInput.step = "1";
+  qtyInput.value = "1";
+  qtyTd.appendChild(qtyInput);
+
+  const removeTd = document.createElement("td");
+  const removeBtn = document.createElement("button");
+  removeBtn.textContent = "X";
+  removeBtn.className = "btn btn-danger btn-small";
+  removeBtn.addEventListener("click", () => {
     tr.remove();
   });
+  removeTd.appendChild(removeBtn);
+
+  tr.appendChild(nameTd);
+  tr.appendChild(descTd);
+  tr.appendChild(imgTd);
+  tr.appendChild(priceTd);
+  tr.appendChild(qtyTd);
+  tr.appendChild(removeTd);
 
   return tr;
 }
 
-function addInitialRowIfEmpty() {
-  const tbody = document.getElementById("itemsBody");
-  if (!tbody.querySelector("tr")) {
-    tbody.appendChild(createItemRow());
-  }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  const tbody = document.getElementById("itemsBody");
+window.addEventListener("DOMContentLoaded", () => {
+  const itemsBody = document.getElementById("itemsBody");
   const addItemBtn = document.getElementById("addItem");
   const createBtn = document.getElementById("createBtn");
   const statusMsg = document.getElementById("statusMsg");
   const errorMsg = document.getElementById("errorMsg");
   const resultPanel = document.getElementById("resultPanel");
-  const checkoutLinkEl = document.getElementById("checkoutLink");
-  const noteTextEl = document.getElementById("noteText");
+  const checkoutLinkTextarea = document.getElementById("checkoutLink");
+  const noteTextTextarea = document.getElementById("noteText");
   const copyLinkBtn = document.getElementById("copyLinkBtn");
   const copyNoteBtn = document.getElementById("copyNoteBtn");
 
-  addItemBtn.addEventListener("click", () => {
-    tbody.appendChild(createItemRow());
+  // Start with one empty row
+  itemsBody.appendChild(createItemRow());
+
+  addItemBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    itemsBody.appendChild(createItemRow());
   });
 
-  addInitialRowIfEmpty();
+  copyLinkBtn.addEventListener("click", () => {
+    checkoutLinkTextarea.select();
+    document.execCommand("copy");
+    logActivity("Checkout link copied to clipboard.");
+  });
 
-  async function createHold() {
+  copyNoteBtn.addEventListener("click", () => {
+    noteTextTextarea.select();
+    document.execCommand("copy");
+    logActivity("Notes text copied to clipboard.");
+  });
+
+  createBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
     errorMsg.style.display = "none";
     errorMsg.textContent = "";
+    statusMsg.textContent = "";
     resultPanel.style.display = "none";
-    statusMsg.textContent = "Creating session with Stripe…";
 
-    const customerEmail = document
-      .getElementById("customerEmail")
-      .value.trim();
+    const customerEmail = document.getElementById("customerEmail").value.trim();
     const internalNote = document.getElementById("internalNote").value.trim();
-    const deliveryFeeAud = document
-      .getElementById("deliveryFeeAud")
-      .value.trim();
+    const deliveryFeeAud = document.getElementById("deliveryFeeAud").value.trim();
+    const adminPassword = document.getElementById("adminPassword").value;
+
+    if (!adminPassword) {
+      errorMsg.textContent = "Please enter the admin password.";
+      errorMsg.style.display = "block";
+      logActivity("Attempted to create link without admin password.");
+      return;
+    }
 
     const items = [];
-    document.querySelectorAll("#itemsBody tr").forEach((tr) => {
-      const name = tr.querySelector(".item-name").value.trim();
-      const description = tr
-        .querySelector(".item-description")
-        .value.trim();
-      const imageUrl = tr.querySelector(".item-image").value.trim();
-      const priceAud = tr.querySelector(".item-price").value.trim();
-      const quantity = tr.querySelector(".item-qty").value.trim();
+    const rows = itemsBody.querySelectorAll("tr");
+    rows.forEach((row) => {
+      const inputs = row.querySelectorAll("input");
+      const [nameInput, descInput, imgInput, priceInput, qtyInput] = inputs;
 
-      if (!name && !priceAud) {
-        return; // allow blank rows
+      const name = nameInput.value.trim();
+      const description = descInput.value.trim();
+      const imageUrl = imgInput.value.trim();
+      const priceAud = priceInput.value.trim();
+      const qty = qtyInput.value.trim();
+
+      if (!name && !priceAud && !qty) {
+        // completely empty row, ignore
+        return;
       }
 
       items.push({
@@ -86,19 +137,23 @@ document.addEventListener("DOMContentLoaded", () => {
         description,
         imageUrl,
         priceAud,
-        quantity,
+        qty,
       });
     });
 
     if (items.length === 0) {
-      statusMsg.textContent = "";
       errorMsg.textContent = "Please add at least one item.";
       errorMsg.style.display = "block";
+      logActivity("Validation failed, no items added.");
       return;
     }
 
+    logActivity("Checking password and validating data.");
+    statusMsg.textContent = "Creating checkout session...";
+
     try {
-      const res = await fetch("/create-hold", {
+      logActivity("Sending request to server.");
+      const res = await fetch("/create-checkout-session", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -108,53 +163,35 @@ document.addEventListener("DOMContentLoaded", () => {
           internalNote,
           deliveryFeeAud,
           items,
+          adminPassword,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to create Stripe session");
+        const msg = data && data.error ? data.error : "Unknown error from server.";
+        errorMsg.textContent = msg;
+        errorMsg.style.display = "block";
+        statusMsg.textContent = "";
+        logActivity(`Error from server: ${msg}`);
+        return;
       }
 
-      // Show results
-      checkoutLinkEl.value = data.checkoutUrl || "";
-      const deliveryLine =
-        Number(data.deliveryFeeAud || 0) > 0
-          ? `Delivery/service: AUD ${data.deliveryFeeAud}\n`
-          : "";
-
-      noteTextEl.value =
-        `PaymentIntent: ${data.paymentIntentId}\n` +
-        `Total authorized: AUD ${data.totalAmountAud}\n` +
-        deliveryLine +
-        (customerEmail ? `Customer email: ${customerEmail}\n` : "") +
-        (internalNote ? `Internal note: ${internalNote}` : "");
-
+      // success
+      const { url, noteText } = data;
+      checkoutLinkTextarea.value = url || "";
+      noteTextTextarea.value = noteText || "";
       resultPanel.style.display = "block";
-      statusMsg.textContent = "Hold link created.";
+      statusMsg.textContent = "Hold link created. Copy and send to customer.";
+      logActivity("Checkout session created successfully.");
     } catch (err) {
       console.error(err);
-      statusMsg.textContent = "";
-      errorMsg.textContent = err.message || "Something went wrong.";
+      errorMsg.textContent =
+        "Unexpected error while talking to server. Check console.";
       errorMsg.style.display = "block";
+      statusMsg.textContent = "";
+      logActivity("Network or unexpected error while creating session.");
     }
-  }
-
-  createBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    createHold();
-  });
-
-  copyLinkBtn.addEventListener("click", () => {
-    checkoutLinkEl.select();
-    checkoutLinkEl.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(checkoutLinkEl.value || "").catch(() => {});
-  });
-
-  copyNoteBtn.addEventListener("click", () => {
-    noteTextEl.select();
-    noteTextEl.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(noteTextEl.value || "").catch(() => {});
   });
 });
