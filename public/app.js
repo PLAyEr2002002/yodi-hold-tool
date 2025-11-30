@@ -1,198 +1,160 @@
-// public/app.js
-
-function makeItemRow(item = {}) {
+function createItemRow(initial = {}) {
   const tr = document.createElement("tr");
 
-  const nameTd = document.createElement("td");
-  const descTd = document.createElement("td");
-  const imageTd = document.createElement("td");
-  const priceTd = document.createElement("td");
-  const qtyTd = document.createElement("td");
-  const removeTd = document.createElement("td");
+  tr.innerHTML = `
+    <td><input type="text" class="item-name" placeholder="Jeans"></td>
+    <td><input type="text" class="item-description" placeholder="Blue, size 10"></td>
+    <td><input type="text" class="item-image" placeholder="https://..."></td>
+    <td><input type="number" class="item-price" min="0" step="0.01" placeholder="79.95"></td>
+    <td><input type="number" class="item-qty" min="1" step="1" value="1"></td>
+    <td style="text-align:center;">
+      <button type="button" class="btn btn-danger btn-small remove-item">X</button>
+    </td>
+  `;
 
-  const nameInput = document.createElement("input");
-  nameInput.type = "text";
-  nameInput.value = item.name || "";
-  nameTd.appendChild(nameInput);
+  if (initial.name) tr.querySelector(".item-name").value = initial.name;
+  if (initial.description)
+    tr.querySelector(".item-description").value = initial.description;
+  if (initial.imageUrl) tr.querySelector(".item-image").value = initial.imageUrl;
+  if (initial.priceAud)
+    tr.querySelector(".item-price").value = initial.priceAud;
+  if (initial.quantity)
+    tr.querySelector(".item-qty").value = initial.quantity;
 
-  const descInput = document.createElement("input");
-  descInput.type = "text";
-  descInput.value = item.description || "";
-  descTd.appendChild(descInput);
-
-  const imageInput = document.createElement("input");
-  imageInput.type = "text";
-  imageInput.value = item.imageUrl || "";
-  imageTd.appendChild(imageInput);
-
-  const priceInput = document.createElement("input");
-  priceInput.type = "number";
-  priceInput.step = "0.01";
-  priceInput.min = "0";
-  priceInput.value = item.priceAud != null ? item.priceAud : "";
-  priceTd.appendChild(priceInput);
-
-  const qtyInput = document.createElement("input");
-  qtyInput.type = "number";
-  qtyInput.min = "1";
-  qtyInput.value = item.quantity || 1;
-  qtyTd.appendChild(qtyInput);
-
-  const removeBtn = document.createElement("button");
-  removeBtn.type = "button";
-  removeBtn.textContent = "X";
-  removeBtn.className = "secondary";
-  removeBtn.addEventListener("click", () => {
+  tr.querySelector(".remove-item").addEventListener("click", () => {
     tr.remove();
   });
-  removeTd.appendChild(removeBtn);
-
-  tr.appendChild(nameTd);
-  tr.appendChild(descTd);
-  tr.appendChild(imageTd);
-  tr.appendChild(priceTd);
-  tr.appendChild(qtyTd);
-  tr.appendChild(removeTd);
 
   return tr;
 }
 
-function getItemsFromTable() {
-  const rows = document.querySelectorAll("#itemsBody tr");
-  const items = [];
-
-  rows.forEach((tr) => {
-    const inputs = tr.querySelectorAll("input");
-    const [nameInput, descInput, imageInput, priceInput, qtyInput] = inputs;
-
-    const name = nameInput.value.trim();
-    const description = descInput.value.trim();
-    const imageUrl = imageInput.value.trim();
-    const priceAud = parseFloat(priceInput.value);
-    const quantity = parseInt(qtyInput.value, 10) || 1;
-
-    if (!name || isNaN(priceAud)) {
-      return;
-    }
-
-    items.push({
-      name,
-      description,
-      imageUrl,
-      priceAud,
-      quantity,
-    });
-  });
-
-  return items;
-}
-
-async function createHold() {
-  const errorMsg = document.getElementById("errorMsg");
-  const resultWrapper = document.getElementById("resultWrapper");
-  const holdLinkEl = document.getElementById("holdLink");
-  const notesBox = document.getElementById("notesBox");
-  const piIdText = document.getElementById("piIdText");
-  const piAmountText = document.getElementById("piAmountText");
-
-  errorMsg.classList.add("hidden");
-  errorMsg.textContent = "";
-  resultWrapper.classList.add("hidden");
-  holdLinkEl.textContent = "";
-  notesBox.classList.add("hidden");
-  piIdText.textContent = "";
-  piAmountText.textContent = "";
-
-  const customerEmail = document.getElementById("customerEmail").value.trim();
-  const internalNote = document.getElementById("internalNote").value.trim();
-  const items = getItemsFromTable();
-
-  if (items.length === 0) {
-    errorMsg.textContent = "Please add at least one item with name and price.";
-    errorMsg.classList.remove("hidden");
-    return;
-  }
-
-  try {
-    const response = await fetch("/create-hold", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        customerEmail,
-        internalNote,
-        items,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Server returned " + response.status);
-    }
-
-    const data = await response.json();
-
-    if (!data.url) {
-      throw new Error("Server did not send back a link.");
-    }
-
-    // Show link
-    holdLinkEl.textContent = data.url;
-    resultWrapper.classList.remove("hidden");
-
-    // Show notes block if we have a PaymentIntent id
-    if (data.paymentIntentId) {
-      piIdText.textContent = data.paymentIntentId;
-      if (typeof data.amountTotal === "number") {
-        const aud = (data.amountTotal / 100).toFixed(2);
-        piAmountText.textContent = `A$${aud} AUD`;
-      } else {
-        piAmountText.textContent = "Unknown";
-      }
-      notesBox.classList.remove("hidden");
-    }
-  } catch (err) {
-    console.error(err);
-    errorMsg.textContent =
-      "Could not create hold link. Please check console for details.";
-    errorMsg.classList.remove("hidden");
-  }
-}
-
-// Copy only the link text to clipboard
-async function copyLinkToClipboard() {
-  const holdLinkEl = document.getElementById("holdLink");
-  const linkText = holdLinkEl.textContent.trim();
-  if (!linkText) {
-    return;
-  }
-
-  try {
-    await navigator.clipboard.writeText(linkText);
-    const originalText = document.getElementById("copyLinkBtn").textContent;
-    document.getElementById("copyLinkBtn").textContent = "Copied";
-    setTimeout(() => {
-      document.getElementById("copyLinkBtn").textContent = originalText;
-    }, 1200);
-  } catch (err) {
-    console.error("Clipboard copy failed", err);
-    alert("Could not copy. Please copy manually.");
+function addInitialRowIfEmpty() {
+  const tbody = document.getElementById("itemsBody");
+  if (!tbody.querySelector("tr")) {
+    tbody.appendChild(createItemRow());
   }
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  const itemsBody = document.getElementById("itemsBody");
-  const addItemBtn = document.getElementById("addItemBtn");
-  const createHoldBtn = document.getElementById("createHoldBtn");
+  const tbody = document.getElementById("itemsBody");
+  const addItemBtn = document.getElementById("addItem");
+  const createBtn = document.getElementById("createBtn");
+  const statusMsg = document.getElementById("statusMsg");
+  const errorMsg = document.getElementById("errorMsg");
+  const resultPanel = document.getElementById("resultPanel");
+  const checkoutLinkEl = document.getElementById("checkoutLink");
+  const noteTextEl = document.getElementById("noteText");
   const copyLinkBtn = document.getElementById("copyLinkBtn");
-
-  // Start with one empty row
-  itemsBody.appendChild(makeItemRow());
+  const copyNoteBtn = document.getElementById("copyNoteBtn");
 
   addItemBtn.addEventListener("click", () => {
-    itemsBody.appendChild(makeItemRow());
+    tbody.appendChild(createItemRow());
   });
 
-  createHoldBtn.addEventListener("click", createHold);
-  copyLinkBtn.addEventListener("click", copyLinkToClipboard);
+  addInitialRowIfEmpty();
+
+  async function createHold() {
+    errorMsg.style.display = "none";
+    errorMsg.textContent = "";
+    resultPanel.style.display = "none";
+    statusMsg.textContent = "Creating session with Stripe…";
+
+    const customerEmail = document
+      .getElementById("customerEmail")
+      .value.trim();
+    const internalNote = document.getElementById("internalNote").value.trim();
+    const deliveryFeeAud = document
+      .getElementById("deliveryFeeAud")
+      .value.trim();
+
+    const items = [];
+    document.querySelectorAll("#itemsBody tr").forEach((tr) => {
+      const name = tr.querySelector(".item-name").value.trim();
+      const description = tr
+        .querySelector(".item-description")
+        .value.trim();
+      const imageUrl = tr.querySelector(".item-image").value.trim();
+      const priceAud = tr.querySelector(".item-price").value.trim();
+      const quantity = tr.querySelector(".item-qty").value.trim();
+
+      if (!name && !priceAud) {
+        return; // allow blank rows
+      }
+
+      items.push({
+        name,
+        description,
+        imageUrl,
+        priceAud,
+        quantity,
+      });
+    });
+
+    if (items.length === 0) {
+      statusMsg.textContent = "";
+      errorMsg.textContent = "Please add at least one item.";
+      errorMsg.style.display = "block";
+      return;
+    }
+
+    try {
+      const res = await fetch("/create-hold", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customerEmail,
+          internalNote,
+          deliveryFeeAud,
+          items,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create Stripe session");
+      }
+
+      // Show results
+      checkoutLinkEl.value = data.checkoutUrl || "";
+      const deliveryLine =
+        Number(data.deliveryFeeAud || 0) > 0
+          ? `Delivery/service: AUD ${data.deliveryFeeAud}\n`
+          : "";
+
+      noteTextEl.value =
+        `PaymentIntent: ${data.paymentIntentId}\n` +
+        `Total authorized: AUD ${data.totalAmountAud}\n` +
+        deliveryLine +
+        (customerEmail ? `Customer email: ${customerEmail}\n` : "") +
+        (internalNote ? `Internal note: ${internalNote}` : "");
+
+      resultPanel.style.display = "block";
+      statusMsg.textContent = "Hold link created.";
+    } catch (err) {
+      console.error(err);
+      statusMsg.textContent = "";
+      errorMsg.textContent = err.message || "Something went wrong.";
+      errorMsg.style.display = "block";
+    }
+  }
+
+  createBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    createHold();
+  });
+
+  copyLinkBtn.addEventListener("click", () => {
+    checkoutLinkEl.select();
+    checkoutLinkEl.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(checkoutLinkEl.value || "").catch(() => {});
+  });
+
+  copyNoteBtn.addEventListener("click", () => {
+    noteTextEl.select();
+    noteTextEl.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(noteTextEl.value || "").catch(() => {});
+  });
 });

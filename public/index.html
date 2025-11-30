@@ -1,71 +1,74 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <title>Yodi hold creator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-      body {
+      * {
+        box-sizing: border-box;
         font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
           sans-serif;
-        background: #f7f3ff;
+      }
+
+      body {
         margin: 0;
-        padding: 40px 20px;
-        display: flex;
-        justify-content: center;
+        padding: 40px 16px;
+        background: #f5f5fb;
+        color: #111827;
       }
 
       .container {
-        width: 100%;
-        max-width: 900px;
+        max-width: 960px;
+        margin: 0 auto;
         background: #ffffff;
         border-radius: 16px;
-        padding: 32px 28px 40px;
+        padding: 32px 24px 40px;
         box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
       }
 
       h1 {
-        margin: 0 0 8px;
+        margin-top: 0;
         font-size: 28px;
+        margin-bottom: 4px;
       }
 
-      .subtitle {
-        margin: 0 0 24px;
-        color: #6b7280;
+      p.subtitle {
+        margin-top: 0;
+        margin-bottom: 24px;
         font-size: 14px;
+        color: #6b7280;
       }
 
       label {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 14px;
+        font-weight: 500;
         display: block;
         margin-bottom: 4px;
       }
 
-      input,
+      input[type="text"],
+      input[type="number"],
       textarea {
         width: 100%;
-        font-size: 14px;
         padding: 8px 10px;
         border-radius: 8px;
         border: 1px solid #d1d5db;
-        outline: none;
-        box-sizing: border-box;
-      }
-
-      input:focus,
-      textarea:focus {
-        border-color: #7c3aed;
-        box-shadow: 0 0 0 1px #7c3aed20;
+        font-size: 14px;
       }
 
       textarea {
-        min-height: 60px;
+        min-height: 70px;
         resize: vertical;
       }
 
-      .field-row {
+      .field {
         margin-bottom: 16px;
+      }
+
+      .small {
+        font-size: 12px;
+        color: #6b7280;
       }
 
       table {
@@ -75,120 +78,126 @@
         font-size: 13px;
       }
 
+      thead {
+        background: #f3f4ff;
+      }
+
       th,
       td {
         border: 1px solid #e5e7eb;
         padding: 6px 8px;
-        text-align: left;
+        vertical-align: middle;
       }
 
       th {
-        background: #f3f4ff;
+        text-align: left;
         font-weight: 600;
-        font-size: 12px;
-      }
-
-      .items-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-top: 12px;
-      }
-
-      button {
-        border-radius: 999px;
-        border: 0;
-        padding: 8px 16px;
-        background: #7c3aed;
-        color: white;
         font-size: 13px;
+      }
+
+      td input {
+        width: 100%;
+        font-size: 13px;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 14px;
+        border: none;
         cursor: pointer;
+        gap: 6px;
       }
 
-      button:hover {
-        background: #6d28d9;
+      .btn-primary {
+        background: #4f46e5;
+        color: white;
       }
 
-      button.secondary {
+      .btn-secondary {
         background: #e5e7eb;
         color: #111827;
       }
 
-      button.secondary:hover {
-        background: #d1d5db;
+      .btn-small {
+        padding: 4px 9px;
+        font-size: 12px;
       }
 
-      .actions-row {
+      .btn-danger {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .mt-8 {
+        margin-top: 8px;
+      }
+
+      .mt-16 {
         margin-top: 16px;
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
       }
 
-      .result-box {
-        margin-top: 18px;
-        padding: 10px 12px;
-        border-radius: 10px;
+      .mt-24 {
+        margin-top: 24px;
+      }
+
+      .flex-between {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+
+      .result-panel {
+        margin-top: 24px;
+        padding: 16px;
+        border-radius: 12px;
         background: #ecfdf5;
-        border: 1px solid #a7f3d0;
+        border: 1px solid #bbf7d0;
         font-size: 13px;
       }
 
-      .result-title {
-        font-weight: 600;
-        margin-bottom: 6px;
+      .result-panel h3 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 15px;
       }
 
-      .link-row {
-        display: flex;
-        gap: 8px;
-        align-items: flex-start;
-        margin-top: 4px;
-      }
-
-      #holdLink {
-        flex: 1;
-        min-height: 46px;
-        max-height: 120px;
-        padding: 6px 8px;
-        border-radius: 8px;
-        border: 1px solid #a7f3d0;
-        background: #ffffff;
-        font-family: monospace;
+      .result-panel textarea {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+          "Liberation Mono", "Courier New", monospace;
         font-size: 12px;
         line-height: 1.4;
-        overflow-y: auto;
-        word-break: break-all;
-        white-space: pre-wrap;
+        background: #f9fafb;
       }
 
-      .notes-box {
-        margin-top: 12px;
-        padding: 10px 12px;
-        border-radius: 10px;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        font-size: 12px;
-        color: #1f2933;
+      .result-row {
+        margin-top: 8px;
       }
 
-      .notes-title {
-        font-weight: 600;
-        margin-bottom: 4px;
-      }
-
-      .notes-line {
-        margin-bottom: 2px;
-      }
-
-      .hidden {
-        display: none;
-      }
-
-      .error-msg {
-        margin-top: 10px;
+      .error {
+        margin-top: 8px;
         color: #b91c1c;
         font-size: 13px;
+      }
+
+      @media (max-width: 640px) {
+        .container {
+          padding: 24px 16px 32px;
+        }
+
+        table {
+          font-size: 12px;
+        }
+
+        th,
+        td {
+          padding: 4px 6px;
+        }
       }
     </style>
   </head>
@@ -196,79 +205,115 @@
     <div class="container">
       <h1>Yodi hold creator</h1>
       <p class="subtitle">
-        This tool creates a Stripe Checkout link that only authorizes the card.
-        You capture later inside Stripe.
+        Create a Stripe Checkout link that authorizes the card only. You capture
+        later from the Stripe Dashboard.
       </p>
 
-      <div class="field-row">
+      <div class="field">
         <label for="customerEmail">Customer email (optional)</label>
         <input
+          type="text"
           id="customerEmail"
-          type="email"
           placeholder="customer@example.com"
         />
       </div>
 
-      <div class="field-row">
+      <div class="field">
         <label for="internalNote">Internal note</label>
         <textarea
           id="internalNote"
-          placeholder="Example jeans and shoes for Olivia"
+          placeholder="e.g. Sara – H&amp;M Watergardens order"
         ></textarea>
       </div>
 
-      <div class="items-header">
-        <h3>Items</h3>
-        <button type="button" class="secondary" id="addItemBtn">Add item</button>
-      </div>
-
-      <small>Prices are in AUD. Tool converts to cents for Stripe.</small>
-
-      <table id="itemsTable">
-        <thead>
-          <tr>
-            <th style="width: 18%">Name</th>
-            <th style="width: 30%">Description</th>
-            <th style="width: 20%">Image URL</th>
-            <th style="width: 12%">Price AUD</th>
-            <th style="width: 10%">Qty</th>
-            <th style="width: 10%">Remove</th>
-          </tr>
-        </thead>
-        <tbody id="itemsBody">
-          <!-- rows filled by JS -->
-        </tbody>
-      </table>
-
-      <div class="actions-row">
-        <button type="button" id="createHoldBtn">Create hold link</button>
-      </div>
-
-      <div id="resultWrapper" class="result-box hidden">
-        <div class="result-title">
-          Hold link created, copy and send to customer.
+      <div class="field">
+        <label for="deliveryFeeAud">Delivery / service fee (AUD)</label>
+        <input
+          type="number"
+          id="deliveryFeeAud"
+          min="0"
+          step="0.01"
+          placeholder="15.00"
+        />
+        <div class="small">
+          This will show as a separate “Delivery &amp; service” line in
+          Checkout.
         </div>
-        <div class="link-row">
-          <div id="holdLink"></div>
-          <button type="button" class="secondary" id="copyLinkBtn">
-            Copy link
+      </div>
+
+      <div class="mt-24">
+        <div class="flex-between">
+          <h2 style="font-size: 18px; margin: 0">Items</h2>
+          <button id="addItem" class="btn btn-secondary btn-small">
+            + Add item
           </button>
         </div>
+        <div class="small mt-8">
+          Prices are in AUD. Enter price in dollars &mdash; the tool converts to
+          cents for Stripe.
+        </div>
 
-        <div id="notesBox" class="notes-box hidden">
-          <div class="notes-title">Notes for Stripe</div>
-          <div class="notes-line">
-            <strong>PaymentIntent:</strong>
-            <span id="piIdText"></span>
+        <table class="mt-8">
+          <thead>
+            <tr>
+              <th style="width: 18%">Name</th>
+              <th style="width: 24%">Description</th>
+              <th style="width: 24%">Image URL (optional)</th>
+              <th style="width: 14%">Price AUD</th>
+              <th style="width: 10%">Qty</th>
+              <th style="width: 10%">Remove</th>
+            </tr>
+          </thead>
+          <tbody id="itemsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="mt-24">
+        <button id="createBtn" class="btn btn-primary">
+          Create hold link
+        </button>
+        <span id="statusMsg" class="small"></span>
+        <div id="errorMsg" class="error" style="display: none"></div>
+      </div>
+
+      <div id="resultPanel" class="result-panel" style="display: none">
+        <h3>Hold link</h3>
+        <div class="result-row">
+          <div class="small" style="margin-bottom: 4px">
+            Send this link to the customer. It will authorize the total amount
+            only.
           </div>
-          <div class="notes-line">
-            <strong>Total amount:</strong>
-            <span id="piAmountText"></span>
+          <div class="flex-between">
+            <textarea
+              id="checkoutLink"
+              readonly
+              rows="3"
+              style="flex: 1 1 auto; margin-right: 8px"
+            ></textarea>
+            <button id="copyLinkBtn" class="btn btn-secondary btn-small">
+              Copy link
+            </button>
+          </div>
+        </div>
+
+        <div class="result-row" style="margin-top: 16px">
+          <h3 style="margin-bottom: 4px">Copy for Stripe notes</h3>
+          <div class="small" style="margin-bottom: 4px">
+            Paste this into the PaymentIntent notes or an internal system.
+          </div>
+          <div class="flex-between">
+            <textarea
+              id="noteText"
+              readonly
+              rows="5"
+              style="flex: 1 1 auto; margin-right: 8px"
+            ></textarea>
+            <button id="copyNoteBtn" class="btn btn-secondary btn-small">
+              Copy notes
+            </button>
           </div>
         </div>
       </div>
-
-      <div id="errorMsg" class="error-msg hidden"></div>
     </div>
 
     <script src="app.js"></script>
