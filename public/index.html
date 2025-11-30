@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Yodi hold creator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        background: #f7f3ff;
+        margin: 0;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 900px;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 32px 28px 40px;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+      }
+
+      .subtitle {
+        margin: 0 0 24px;
+        color: #6b7280;
+        font-size: 14px;
+      }
+
+      label {
+        font-size: 13px;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      input,
+      textarea {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        outline: none;
+        box-sizing: border-box;
+      }
+
+      input:focus,
+      textarea:focus {
+        border-color: #7c3aed;
+        box-shadow: 0 0 0 1px #7c3aed20;
+      }
+
+      textarea {
+        min-height: 60px;
+        resize: vertical;
+      }
+
+      .field-row {
+        margin-bottom: 16px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        border: 1px solid #e5e7eb;
+        padding: 6px 8px;
+        text-align: left;
+      }
+
+      th {
+        background: #f3f4ff;
+        font-weight: 600;
+        font-size: 12px;
+      }
+
+      .items-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+      }
+
+      button {
+        border-radius: 999px;
+        border: 0;
+        padding: 8px 16px;
+        background: #7c3aed;
+        color: white;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #6d28d9;
+      }
+
+      button.secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      button.secondary:hover {
+        background: #d1d5db;
+      }
+
+      .actions-row {
+        margin-top: 16px;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+
+      .result-box {
+        margin-top: 18px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        font-size: 13px;
+      }
+
+      .result-title {
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+
+      .link-row {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin-top: 4px;
+      }
+
+      #holdLink {
+        flex: 1;
+        min-height: 46px;
+        max-height: 120px;
+        padding: 6px 8px;
+        border-radius: 8px;
+        border: 1px solid #a7f3d0;
+        background: #ffffff;
+        font-family: monospace;
+        font-size: 12px;
+        line-height: 1.4;
+        overflow-y: auto;
+        word-break: break-all;
+        white-space: pre-wrap;
+      }
+
+      .notes-box {
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        font-size: 12px;
+        color: #1f2933;
+      }
+
+      .notes-title {
+        font-weight: 600;
+        margin-bottom: 4px;
+      }
+
+      .notes-line {
+        margin-bottom: 2px;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .error-msg {
+        margin-top: 10px;
+        color: #b91c1c;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Yodi hold creator</h1>
+      <p class="subtitle">
+        This tool creates a Stripe Checkout link that only authorizes the card.
+        You capture later inside Stripe.
+      </p>
+
+      <div class="field-row">
+        <label for="customerEmail">Customer email (optional)</label>
+        <input
+          id="customerEmail"
+          type="email"
+          placeholder="customer@example.com"
+        />
+      </div>
+
+      <div class="field-row">
+        <label for="internalNote">Internal note</label>
+        <textarea
+          id="internalNote"
+          placeholder="Example jeans and shoes for Olivia"
+        ></textarea>
+      </div>
+
+      <div class="items-header">
+        <h3>Items</h3>
+        <button type="button" class="secondary" id="addItemBtn">Add item</button>
+      </div>
+
+      <small>Prices are in AUD. Tool converts to cents for Stripe.</small>
+
+      <table id="itemsTable">
+        <thead>
+          <tr>
+            <th style="width: 18%">Name</th>
+            <th style="width: 30%">Description</th>
+            <th style="width: 20%">Image URL</th>
+            <th style="width: 12%">Price AUD</th>
+            <th style="width: 10%">Qty</th>
+            <th style="width: 10%">Remove</th>
+          </tr>
+        </thead>
+        <tbody id="itemsBody">
+          <!-- rows filled by JS -->
+        </tbody>
+      </table>
+
+      <div class="actions-row">
+        <button type="button" id="createHoldBtn">Create hold link</button>
+      </div>
+
+      <div id="resultWrapper" class="result-box hidden">
+        <div class="result-title">
+          Hold link created, copy and send to customer.
+        </div>
+        <div class="link-row">
+          <div id="holdLink"></div>
+          <button type="button" class="secondary" id="copyLinkBtn">
+            Copy link
+          </button>
+        </div>
+
+        <div id="notesBox" class="notes-box hidden">
+          <div class="notes-title">Notes for Stripe</div>
+          <div class="notes-line">
+            <strong>PaymentIntent:</strong>
+            <span id="piIdText"></span>
+          </div>
+          <div class="notes-line">
+            <strong>Total amount:</strong>
+            <span id="piAmountText"></span>
+          </div>
+        </div>
+      </div>
+
+      <div id="errorMsg" class="error-msg hidden"></div>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
