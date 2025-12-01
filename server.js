@@ -120,7 +120,7 @@ app.post("/create-checkout-session", async (req, res) => {
       customer_email: customerEmail || undefined,
       line_items,
       success_url:
-        "https://checkout.stripe.com/c/pay/success#yodi_hold_success",
+        "https://yodi.com.au/success",
       cancel_url:
         "https://checkout.stripe.com/c/pay/cancel#yodi_hold_cancel",
     });
